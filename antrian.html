@@ -130,10 +130,10 @@
         <h3 style="margin-top:0; text-align:center;">Pengaturan Antrian</h3>
         
         <label>Nama Toko</label>
-        <input type="text" id="inputToko" value="TOKO MAJU JAYA" onkeyup="updatePreview()">
+        <input type="text" id="inputToko" value="GRIYA PLAZA SUMEDANG" onkeyup="updatePreview()">
 
         <label>Alamat Toko</label>
-        <input type="text" id="inputAlamat" value="Jl. Raya Sumedang No. 123" onkeyup="updatePreview()">
+        <input type="text" id="inputAlamat" value="Jl. Mayor Abadurahman 163 Sumedang" onkeyup="updatePreview()">
 
         <label>Keterangan Tambahan</label>
         <input type="text" id="inputKeterangan" value="Silahkan tunggu panggilan" onkeyup="updatePreview()">
@@ -155,8 +155,8 @@
 
     <!-- Preview Struk -->
     <div class="ticket-container paper-58" id="ticketArea">
-        <h2 id="prevToko">TOKO MAJU JAYA</h2>
-        <div class="alamat" id="prevAlamat">Jl. Raya Sumedang No. 123</div>
+        <h2 id="prevToko">GRIYA PLAZA SUMEDANG</h2>
+        <div class="alamat" id="prevAlamat">Jl. Mayor Abadurahman 163 Sumedang</div>
         <div class="datetime" id="prevDateTime">Loading...</div>
         
         <h3>ANTRIAN</h3>
@@ -244,7 +244,7 @@
             let strDate = now.toLocaleDateString('id-ID', dateOptions);
             let strTime = now.toLocaleTimeString('id-ID', timeOptions);
             
-            document.getElementById("prevDateTime").innerText = strDate + "\n" + strTime;
+            document.getElementById("prevDateTime").innerText = strDate + " - " + strTime;
         }, 1000);
 
         // Panggil sekali agar tidak nunggu 1 detik pertama
