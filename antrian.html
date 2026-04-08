@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Antrian Dinamis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Gaya untuk Panel Kontrol */
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        .control-panel label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .control-panel input, .control-panel select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-print { background-color: #28a745; }
+        .btn-reset { background-color: #dc3545; }
+
+        /* Gaya untuk Struk Antrian (Thermal Printer Style) */
+        .ticket-container {
+            background: white;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            /* Font monospace agar mirip hasil print thermal */
+            font-family: 'Courier New', Courier, monospace; 
+            text-align: center;
+            color: black;
+            box-sizing: border-box;
+            transition: width 0.3s ease;
+        }
+
+        /* Ukuran Kertas */
+        .paper-58 { width: 220px; } /* ~58mm */
+        .paper-80 { width: 300px; } /* ~80mm */
+
+        .ticket-container h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .ticket-container .alamat {
+            font-size: 12px;
+            margin: 5px 0 10px 0;
+        }
+
+        .ticket-container .datetime {
+            font-size: 12px;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed black;
+            padding-bottom: 10px;
+        }
+
+        .ticket-container h3 {
+            margin: 10px 0 5px 0;
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .ticket-container .nomor-antrian {
+            margin: 0;
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .ticket-container .keterangan {
+            font-size: 12px;
+            margin: 15px 0;
+        }
+
+        .ticket-container .garis {
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Panel Pengaturan -->
+    <div class="control-panel">
+        <h3 style="margin-top:0; text-align:center;">Pengaturan Antrian</h3>
+        
+        <label>Nama Toko</label>
+        <input type="text" id="inputToko" value="TOKO MAJU JAYA" onkeyup="updatePreview()">
+
+        <label>Alamat Toko</label>
+        <input type="text" id="inputAlamat" value="Jl. Raya Sumedang No. 123" onkeyup="updatePreview()">
+
+        <label>Keterangan Tambahan</label>
+        <input type="text" id="inputKeterangan" value="Silahkan tunggu panggilan" onkeyup="updatePreview()">
+
+        <label>Ukuran Kertas Printer Bluetooth</label>
+        <select id="inputKertas" onchange="updatePaperSize()">
+            <option value="58">58 mm</option>
+            <option value="80">80 mm</option>
+        </select>
+
+        <label>Jumlah Rangkap Print</label>
+        <input type="number" id="inputRangkap" value="1" min="1">
+
+        <div class="btn-group">
+            <button class="btn-reset" onclick="resetAntrian()">Reset Nol</button>
+            <button class="btn-print" onclick="cetakAntrian()">Cetak Antrian</button>
+        </div>
+    </div>
+
+    <!-- Preview Struk -->
+    <div class="ticket-container paper-58" id="ticketArea">
+        <h2 id="prevToko">TOKO MAJU JAYA</h2>
+        <div class="alamat" id="prevAlamat">Jl. Raya Sumedang No. 123</div>
+        <div class="datetime" id="prevDateTime">Loading...</div>
+        
+        <h3>ANTRIAN</h3>
+        <div class="nomor-antrian" id="prevAntrian">0000</div>
+        
+        <div class="keterangan" id="prevKeterangan">Silahkan tunggu panggilan</div>
+        
+        <div class="garis">-------------------</div>
+    </div>
+
+    <script>
+        // Inisialisasi Data dari LocalStorage (Pengganti TinyDB di Web)
+        let nomorSekarang = localStorage.getItem("antrian_db") ? parseInt(localStorage.getItem("antrian_db")) : 0;
+        
+        // Format angka jadi 0001, 0002, dst
+        function formatNomor(num) {
+            return num.toString().padStart(4, '0');
+        }
+
+        // Tampilkan nomor saat halaman pertama kali dimuat
+        document.getElementById("prevAntrian").innerText = formatNomor(nomorSekarang);
+
+        // Update teks secara real-time
+        function updatePreview() {
+            document.getElementById("prevToko").innerText = document.getElementById("inputToko").value;
+            document.getElementById("prevAlamat").innerText = document.getElementById("inputAlamat").value;
+            document.getElementById("prevKeterangan").innerText = document.getElementById("inputKeterangan").value;
+        }
+
+        // Ubah ukuran kertas (lebar div)
+        function updatePaperSize() {
+            let ukuran = document.getElementById("inputKertas").value;
+            let ticket = document.getElementById("ticketArea");
+            if(ukuran === "58") {
+                ticket.className = "ticket-container paper-58";
+            } else {
+                ticket.className = "ticket-container paper-80";
+            }
+        }
+
+        // Fungsi Reset Antrian
+        function resetAntrian() {
+            if(confirm("Yakin ingin mereset antrian kembali ke 0?")) {
+                nomorSekarang = 0;
+                localStorage.setItem("antrian_db", nomorSekarang);
+                document.getElementById("prevAntrian").innerText = formatNomor(nomorSekarang);
+            }
+        }
+
+        // Fungsi Cetak Antrian
+        function cetakAntrian() {
+            // Tambah 1 ke antrian
+            nomorSekarang += 1;
+            localStorage.setItem("antrian_db", nomorSekarang);
+            let noFormat = formatNomor(nomorSekarang);
+            document.getElementById("prevAntrian").innerText = noFormat;
+
+            // Ambil data untuk dikirim ke Kodular
+            let dataPrint = {
+                toko: document.getElementById("inputToko").value,
+                alamat: document.getElementById("inputAlamat").value,
+                tanggal: document.getElementById("prevDateTime").innerText,
+                nomor: noFormat,
+                keterangan: document.getElementById("inputKeterangan").value,
+                kertas: document.getElementById("inputKertas").value,
+                rangkap: document.getElementById("inputRangkap").value
+            };
+
+            // Kirim data ke Kodular via WebViewerString (Format JSON)
+            if (window.AppInventor) {
+                window.AppInventor.setWebViewString(JSON.stringify(dataPrint));
+            } else {
+                // Tampilkan alert jika dibuka di browser biasa (bukan di dalam Kodular)
+                console.log("Data Print:", dataPrint);
+                alert("Simulasi Cetak!\nNomor: " + noFormat + "\nRangkap: " + dataPrint.rangkap + "\nKertas: " + dataPrint.kertas + "mm");
+            }
+        }
+
+        // Jam dan Tanggal Dinamis Real-time
+        setInterval(() => {
+            let now = new Date();
+            let dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            let timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            
+            let strDate = now.toLocaleDateString('id-ID', dateOptions);
+            let strTime = now.toLocaleTimeString('id-ID', timeOptions);
+            
+            document.getElementById("prevDateTime").innerText = strDate + "\n" + strTime;
+        }, 1000);
+
+        // Panggil sekali agar tidak nunggu 1 detik pertama
+        updatePreview();
+    </script>
+</body>
+</html>
