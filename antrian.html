@@ -238,7 +238,7 @@
         // Jam dan Tanggal Dinamis Real-time
         setInterval(() => {
             let now = new Date();
-            let dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            let dateOptions = { day: 'numeric', month: 'short', year: '2-digit' };
             let timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
             
             let strDate = now.toLocaleDateString('id-ID', dateOptions);
